@@ -1,0 +1,40 @@
+.selected-icon {
+  width: 20px;
+}
+.selected-icon-container {
+  right: 13%;
+  top: 5%;
+}
+
+@media screen and (max-width: 1600px) {
+  .selected-icon {
+    width: 20px;
+  }
+  .selected-icon-container {
+    right: 10%;
+    top: 4%;
+  }
+}
+
+@media screen and (max-width: 1200px) {
+  .selected-icon {
+    width: 30px;
+  }
+
+  .selected-icon-container {
+    right: 5%;
+    top: 6%;
+  }
+}
+
+
+@media screen and (max-width: 900px) {
+  .selected-icon {
+    width: 30px;
+  }
+
+  .selected-icon-container {
+    right: 3%;
+    top: 5%;
+  }
+}

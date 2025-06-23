@@ -1,0 +1,275 @@
+@font-face {
+  font-family: "Metropolis";
+  src: url("./fonts/Metropolis-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Metropolis";
+  src: url("./fonts/Metropolis-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Metropolis";
+  src: url("./fonts/Metropolis-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Metropolis";
+  src: url("./fonts/Metropolis-Black.otf") format("opentype");
+  font-weight: 900;
+  font-style: normal;
+}
+
+body {
+  margin: 0px;
+  padding: 0px;
+
+  /* overflow: hidden; */
+  font-family: "Metropolis", sans-serif !important;
+
+  font-weight: 500;
+  background-color: #000000;
+}
+
+.border-on-black {
+  border: 1px solid #2e2e2e;
+}
+
+#plugin-canvas {
+  transition: 1s ease;
+  -webkit-transition: 1s ease;
+  -moz-transition: 1s ease;
+  -ms-transition: 1s ease;
+  -o-transition: 1s ease;
+}
+
+.style-item {
+  cursor: pointer;
+  transition: 1s ease;
+  -webkit-transition: 1s ease;
+  -moz-transition: 1s ease;
+  -ms-transition: 1s ease;
+  -o-transition: 1s ease;
+}
+
+.side-panel {
+  background-color: #000;
+}
+
+#views {
+  cursor: -webkit-grab;
+  cursor: grab;
+
+  &:active {
+    cursor: -webkit-grabbing;
+    cursor: grabbing;
+  }
+}
+
+.grey-text {
+  color: #858181;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.nav-link {
+  color: rgb(188, 183, 183) !important;
+  font-weight: 500 !important;
+}
+
+.nav-link.active {
+  color: #342f2f !important;
+}
+.generate-avatar-container {
+  width: 100%;
+}
+.generate-avatar-container-img {
+  height: 200px;
+}
+.main-window-container {
+  height: 100dvh;
+}
+.details-tooltip {
+  bottom: 3%;
+}
+.lightMenu-bottom{
+  bottom: 3%;
+}
+/* .................................. */
+
+@media screen and (min-width: 1400px) {
+  .main-window-container {
+    height: 100dvh;
+  }
+  .select-hair-pannel-ag {
+    width: 50%;
+  }
+  .generate-avatar-container {
+    width: 50%;
+  }
+  .generate-avatar-container-img {
+    height: 250px;
+  }
+  .details-tooltip {
+    bottom: 3%;
+  }
+}
+
+@media screen and (max-width: 1201px) {
+  .main-window-container {
+    height: 100dvh;
+  }
+  .select-hair-pannel-ag {
+    width: 40%;
+  }
+  .generate-avatar-container {
+    width: 60%;
+  }
+  .details-tooltip {
+    bottom: 3%;
+  }
+}
+
+@media screen and (max-width: 1000px) {
+  .main-window-container {
+    height: 100dvh;
+
+  }
+  .select-hair-pannel-ag {
+    width: 60%;
+  }
+  .generate-avatar-container-img {
+    height: 250px;
+  }
+  .generate-avatar-container {
+    width: 100%;
+  }
+  .details-tooltip {
+    bottom: 5%;
+  }
+  .lightMenu-bottom{
+    bottom: 6%;
+  }
+}
+@media screen and (min-width: 1800px) {
+  .main-window-container {
+    height: 100dvh;
+  }
+  .select-hair-pannel-ag {
+    width: 50%;
+  }
+  .generate-avatar-container {
+    width: 40%;
+  }
+  .generate-avatar-container-img {
+    height: 250px;
+  }
+}
+/* Initial stroke and fill */
+
+.relative {
+  position: relative;
+}
+
+.virtufit-logo {
+  fill: white;
+  animation: fillColor 2s ease-in-out infinite alternate;
+}
+
+@keyframes fillColor {
+  0% {
+    fill: white;
+  }
+  100% {
+    fill: #ff5733; /* Change this to any color */
+  }
+}
+
+.svg-animation-path {
+  stroke: #6246ff;
+  fill: transparent;
+  /* stroke-dashoffset:138.5; */
+  /* --stroke-dashoffset:150; */
+  /* stroke-dasharray:150; */
+
+  stroke-dasharray: 150;
+  stroke-dashoffset: 0;
+
+  animation: mystroke 6s ease infinite;
+}
+
+.svg-animation-path1 {
+  stroke: #727472;
+  fill: transparent;
+  /* stroke-dashoffset:138.5; */
+  /* --stroke-dashoffset:150; */
+
+  /* animation: mystroke 4s ease; */
+}
+
+@keyframes mystroke {
+  0% {
+    stroke: #6246ff;
+
+    stroke-dashoffset: 150;
+  }
+
+  100% {
+    /* stroke-dashoffset: 0; */
+    stroke: #6246ff;
+
+    stroke-dashoffset: 0;
+  }
+}
+
+#hamburger {
+  z-index: 12;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+#hamburger .icon-bar {
+  display: block;
+  background-color: #ffffff;
+  width: 22px;
+  height: 2px;
+  transition: all 0.3s ease-in-out;
+}
+#hamburger .icon-bar + .icon-bar {
+  margin-top: 4px;
+}
+
+#menu-btns.hide-menu-btns {
+  overflow: hidden;
+  height: 0px;
+}
+
+#hamburger.show #wrapper {
+  transition: transform 0.4s ease-in-out;
+  transform: rotateZ(90deg);
+}
+#hamburger.show #one {
+  transform: translateY(6px) rotateZ(45deg) scaleX(0.9);
+}
+#hamburger.show #thr {
+  transform: translateY(-6px) rotateZ(-45deg) scaleX(0.9);
+}
+#hamburger.show #two {
+  opacity: 0;
+}
+
+
+

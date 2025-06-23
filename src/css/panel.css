@@ -1,0 +1,75 @@
+@media screen and (max-width: 1200px) {
+  .left-side-panel {
+    height: 70%;
+    top: 50%;
+    left: -27%;
+    translate: 0% -50%;
+    z-index: 10;
+    width: 27%;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    transition: 0.5s ease-in-out;
+    -webkit-transition: 0.5s ease-in-out;
+    -moz-transition: 0.5s ease-in-out;
+    -ms-transition: 0.5s ease-in-out;
+    -o-transition: 0.5s ease-in-out;
+    background-color: #000;
+  }
+  .left-side-panel-active {
+    height: 70%;
+    background-color: #000;
+    top: 50%;
+    left: 0%;
+    translate: 0% -50%;
+    z-index: 10;
+    width: 27%;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    transition: 0.5s ease-in-out;
+    -webkit-transition: 0.5s ease-in-out;
+    -moz-transition: 0.5s ease-in-out;
+    -ms-transition: 0.5s ease-in-out;
+    -o-transition: 0.5s ease-in-out;
+  }
+}
+
+@media screen and (min-width: 1210px) {
+  .left-side-panel {
+    height: 80%;
+    top: 50%;
+    left: -27%;
+    translate: 0% -50%;
+    z-index: 10;
+    width: 20%;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    transition: 0.5s ease-in-out;
+    -webkit-transition: 0.5s ease-in-out;
+    -moz-transition: 0.5s ease-in-out;
+    -ms-transition: 0.5s ease-in-out;
+    -o-transition: 0.5s ease-in-out;
+    background-color: #000;
+  }
+  .left-side-panel-active {
+    height: 80%;
+    background-color: #000;
+    top: 50%;
+    left: 0%;
+    translate: 0% -50%;
+    z-index: 10;
+    width: 20%;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    transition: 0.5s ease-in-out;
+    -webkit-transition: 0.5s ease-in-out;
+    -moz-transition: 0.5s ease-in-out;
+    -ms-transition: 0.5s ease-in-out;
+    -o-transition: 0.5s ease-in-out;
+  }
+}
+
+
+.active-hair {
+  border: 2px solid #9858ff;
+  background:#151515;
+}

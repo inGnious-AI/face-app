@@ -1,0 +1,74 @@
+#plugin-canvas {
+  /* background: rgb(101, 99, 99); */
+  /* background: radial-gradient(
+      circle,
+      rgba(101, 99, 99, 1) 0%,
+      rgb(58, 58, 58) 100%
+    ); */
+}
+
+/* .canvas-div{
+    transition:0.1s ease;
+    -webkit-transition:0.1s ease;
+    -moz-transition:0.1s ease;
+    -ms-transition:0.1s ease;
+    -o-transition:0.1s ease;
+}
+
+.side-panel{
+  transition:0.1s ease;
+  -webkit-transition:0.1s ease;
+  -moz-transition:0.1s ease;
+  -ms-transition:0.1s ease;
+  -o-transition:0.1s ease;
+} */
+
+
+.border-on-black{
+  border:1px solid #2E2E2E;
+}
+
+.opacity-0 {
+  opacity: 0;
+}
+
+.active-fabric {
+  background-color: #151515;
+  transition: 0.3s ease;
+  -webkit-transition: 0.3s ease;
+  -moz-transition: 0.3s ease;
+  -ms-transition: 0.3s ease;
+  -o-transition: 0.3s ease;
+  cursor: pointer;
+}
+
+.active-style{
+  background:#151515;
+}
+
+.active-item {
+  border: 2px solid #9858ff;
+}
+
+.model-menu {
+  background-color: #383838;
+}
+
+@media screen and (min-width: 1000px) {
+  .styles-lg-list p {
+    font-size: 0.8em;
+    font-weight: 500;
+  }
+}
+
+.selection-details {
+  background: rgb(52, 47, 47, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 0px 10px 0px 0px;
+  border: 1px solid rgba(161, 151, 151, 0.18);
+  -webkit-border-radius: 0px 10px 0px 0px;
+  -moz-border-radius: 0px 10px 0px 0px;
+  -ms-border-radius: 0px 10px 0px 0px;
+  -o-border-radius: 0px 10px 0px 0px;
+}
