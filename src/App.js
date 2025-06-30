@@ -5,13 +5,15 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import GenrateAvatarScreen from './screens/GenrateAvatarScreen'
+import AvatarScreenMale from './screens/AvatarScreenMale'
+import AvatarScreenFemale from './screens/AvatarScreenFemale'
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" Component={GenrateAvatarScreen} index />
+        <Route path="/male" Component={AvatarScreenMale} index />
+        <Route path="/female" Component={AvatarScreenFemale} index />
         <Route path="/generate" Component={AppScreen}  />
       </Routes>
     </Router>

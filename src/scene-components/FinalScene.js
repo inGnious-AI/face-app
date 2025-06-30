@@ -97,7 +97,7 @@ const FinalScene = memo(
 
     useEffect(() => {
       const bodyType = localStorage.getItem("body-type") || "male";
-      const url = `https://continuous-tshirt.s3.ap-south-1.amazonaws.com/face_app/${avatar.modelId}/body_uploads/${bodyType}/preview.obj`;
+      const url = `https://continuous-tshirt.s3.ap-south-1.amazonaws.com/faceless_app/${avatar.modelId}/body_uploads/${bodyType}/preview.obj`;
 
       loader.load(
         url,

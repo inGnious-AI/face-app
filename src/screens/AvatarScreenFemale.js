@@ -13,31 +13,33 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import Dimensions from "../body-dim.json";
 import { Collapse } from "react-collapse";
-import { Lights } from "../scene-components/Lights";
-import FinalScene from "../scene-components/FinalScene";
+import { Lights } from "../scene-components/Lights.js";
+import FinalScene from "../scene-components/FinalScene.js";
 import { Canvas, useLoader } from "react-three-fiber";
 import * as THREE from "three";
 import { Center, OrbitControls } from "@react-three/drei";
 import { GLTFLoader, OBJLoader } from "three/examples/jsm/Addons.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
-import Camera from "../scene-components/Camera";
+import Camera from "../scene-components/Camera.js";
 import { v4 as uuidv4 } from "uuid";
 import { CLOTH_API_URL, BODY_API_URL, FALSE_BACKGROUND } from '../common/constants.js';
 import { fetchLastLineFromCSV } from "../common/csvData.js";
 import TorusBetweenVertices from "../common/torusCreation.js";
-import { customisedLoader } from "../common/customisedLoader"; // <-- import your loader
+import { customisedLoader } from "../common/customisedLoader.js"; // <-- import your loader
+import './AvatarScreen.css';
+import RodBetweenVertices from "../common/rodCreation.js";
 
-const GenrateAvatarScreen = () => {
+const AvatarScreenFemale = () => {
   const { avatar } = useSelector((state) => state.avatarModelDetails);
   const { tshirtSize } = useSelector((state) => state.tshirtSize);
 
   const [additionalData, setAdditionalData] = useState(false);
   const [customer_id, setCustomerId] = useState();
 
-
   const [cameraPosition, setCameraPosition] = useState([0, 1.5, 3]);
   const [cameraLookAt, setCameraLookAt] = useState([0, 1.5, 0]);
   const [modelPosition, setModelPosition] = useState([0, -1, 0]);
+  // Use a single state for expanded control
   const [expandedControl, setExpandedControl] = useState(null);
 
   const cameraRef = useRef();
@@ -61,13 +63,13 @@ const GenrateAvatarScreen = () => {
   const [previewModel, setPreviewModel] = useState(null);
 
   const loadModel = async () => {
-    const bodyType = localStorage.getItem("body-type") ? localStorage.getItem("body-type") : "male";
+    const bodyType = "female";
 
     if (customer_id) {
       setLoading(true);
 
       // 1. Fetch the OBJ file as text
-      const objUrl = `https://continuous-tshirt.s3.ap-south-1.amazonaws.com/face_app/${customer_id}/body_uploads/${bodyType}/preview.obj?${Date.now()}`;
+      const objUrl = `https://continuous-tshirt.s3.ap-south-1.amazonaws.com/faceless_app/test/${customer_id}/body_uploads/${bodyType}/preview.obj?${Date.now()}`;
       try {
         const response = await fetch(objUrl);
         const objText = await response.text();
@@ -141,12 +143,6 @@ const GenrateAvatarScreen = () => {
   const [isChestLocked, setIsChestLocked] = useState(false);
   const [isWaistLocked, setIsWaistLocked] = useState(false);
   const [isHipLocked, setIsHipLocked] = useState(false);
-
-  // Expand States
-  const [isShoulderExpanded, setIsShoulderExpanded] = useState(false);
-  const [isWaistExpanded, setIsWaistExpanded] = useState(false);
-  const [isChestExpanded, setIsChestExpanded] = useState(false);
-  const [isHipExpanded, setIsHipExpanded] = useState(false);
 
   const [error, setError] = useState(false);
 
@@ -318,7 +314,6 @@ const GenrateAvatarScreen = () => {
   useEffect(() => {
     const closestModel = findClosestModel(height * 2.54, weight, Dimensions);
 
-    // console.log(closestModel);
     setHeadlessHeight(Number.parseInt(closestModel["headless height"]));
     setNeckCircumference(Number.parseInt(closestModel["neck circumference"]));
     setChestCircumference(Number.parseInt(closestModel["chest circumference"]));
@@ -394,49 +389,53 @@ const GenrateAvatarScreen = () => {
   }, [cameraPosition, cameraLookAt]);
 
   // Example: Blender indices 1223 and 7757 become 1222 and 7756 in JS
-  const waistIndexA = 1222;
-  const waistIndexB = 7756;
+  // const waistIndexA = 1222;
+  // const waistIndexB = 7756;
 
+  const shoulderIndexA = 11641;
+  const shoulderIndexB = 7052;
+
+  const waistIndexA = 6454;
+  const waistIndexB = 11109;
+
+  const chestIndexA = 6179;
+  const chestIndexB = 10632;
+
+  const hipIndexA = 6469;
+  const hipIndexB = 11183;
+
+  // Only one expandedControl at a time
   const renderControl = (
     label,
     value,
     isLocked,
     setLocked,
-    isExpanded,
-    setExpanded,
     setValue,
     cameraFocusPosition
   ) => {
+    const isExpanded = expandedControl === label;
+
     const handleClick = () => {
       if (isLocked) {
         setLocked(false);
-        setExpanded(true);
+        setExpandedControl(label);
+        if (cameraFocusPosition) {
+          setCameraPosition(cameraFocusPosition.position);
+          setCameraLookAt(cameraFocusPosition.lookAt);
+          setModelPosition([0, 0, 0]);
+        }
       } else {
         const newExpanded = !isExpanded;
-        setIsShoulderExpanded(label === "SHOULDER" ? newExpanded : false);
-        setIsWaistExpanded(label === "WAIST" ? newExpanded : false);
-        setIsChestExpanded(label === "CHEST" ? newExpanded : false);
-        setIsHipExpanded(label === "HIP" ? newExpanded : false);
+        setExpandedControl(newExpanded ? label : null);
 
         if (newExpanded && cameraFocusPosition) {
           setCameraPosition(cameraFocusPosition.position);
           setCameraLookAt(cameraFocusPosition.lookAt);
           setModelPosition([0, 0, 0]);
-        } else {
-          setTimeout(() => {
-            // Use newExpanded for the current label, and state for others
-            const anyExpanded =
-              (label === "SHOULDER" ? newExpanded : isShoulderExpanded) ||
-              (label === "WAIST" ? newExpanded : isWaistExpanded) ||
-              (label === "CHEST" ? newExpanded : isChestExpanded) ||
-              (label === "HIP" ? newExpanded : isHipExpanded);
-
-            if (!anyExpanded) {
-              setCameraPosition([0, 1.5, 3]);
-              setCameraLookAt([0, 1.5, 0]);
-              setModelPosition([0, -1, 0]);
-            }
-          }, 0);
+        } else if (!newExpanded) {
+          setCameraPosition([0, 1.5, 3]);
+          setCameraLookAt([0, 1.5, 0]);
+          setModelPosition([0, -1, 0]);
         }
       }
     };
@@ -450,33 +449,67 @@ const GenrateAvatarScreen = () => {
         >
           <div style={{ fontWeight: "bold", fontSize: "14px" }}>{label}</div>
           <div className="d-flex align-items-center">
-            <div
-              style={{
-                border: "2px solid #333",
-                padding: "4px 10px",
-                borderRadius: "5px",
-                marginRight: "8px",
-                fontSize: "14px",
-                fontWeight: "bold",
-              }}
-            >
-              {value}″
-            </div>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setLocked(!isLocked);
+                if (isLocked) {
+                  setExpandedControl(label);
+                  if (cameraFocusPosition) {
+                    setCameraPosition(cameraFocusPosition.position);
+                    setCameraLookAt(cameraFocusPosition.lookAt);
+                    setModelPosition([0, 0, 0]);
+                  }
+                }
               }}
-              style={{
-                border: "none",
-                background: "transparent",
-                fontSize: "20px",
-                color: "#007bff",
-                cursor: "pointer",
-              }}
+              className="lock-button"
               title={isLocked ? "Unlock" : "Lock"}
             >
-              {isLocked ? "🔒" : "🔓"}
+              <svg width="70" height="65" viewBox="0 -10 70 80">
+                <rect
+                  x="10"
+                  y="25"
+                  width="50"
+                  height="32"
+                  rx="10"
+                  fill={isLocked ? "#111" : "none"}
+                  stroke="#111"
+                  strokeWidth="2"
+                />
+                {isLocked ? (
+                  // Locked: smooth symmetrical arc
+                  <path
+                    d="M20 25V16a15 15 0 1 1 30 0v9"
+                    fill="none"
+                    stroke="#111"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                  />
+                ) : (
+                  // Unlocked: smooth open arc, starts/ends at lock body top
+                  <g transform="rotate(-45 20 25)">
+                    <path
+                      d="M20 25 C20 5, 50 5, 50 25"
+                      fill="none"
+                      stroke="#111"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                    />
+                  </g>
+                )}
+                <text
+                  x="35"
+                  y="47"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fill={isLocked ? "#fff" : "#111"}
+                  fontSize="20"
+                  fontWeight="bold"
+                  fontFamily="inherit"
+                >
+                  {value}″
+                </text>
+              </svg>
             </button>
           </div>
         </div>
@@ -485,13 +518,16 @@ const GenrateAvatarScreen = () => {
           <div className="mt-3">
             <input
               type="range"
-              min={min}
-              max={max}
+              min={cameraFocusPosition.min}
+              max={cameraFocusPosition.max}
               step={1}
               value={value}
               onChange={(e) => setValue(Number(e.target.value))}
               className="form-range"
-              style={{ width: "100%" }}
+              style={{
+                width: "100%",
+                '--percent': ((value - cameraFocusPosition.min) / (cameraFocusPosition.max - cameraFocusPosition.min)) * 100
+              }}
             />
             <p style={{ fontSize: "12px", marginTop: "4px", color: "#444" }}>
               Lock to prioritize {label.toLowerCase()} fit. Other sizes may auto adjust.
@@ -501,7 +537,6 @@ const GenrateAvatarScreen = () => {
       </>
     );
   };
-
 
   return (
     <>
@@ -540,8 +575,6 @@ const GenrateAvatarScreen = () => {
             shoulderLength,
             isShoulderLocked,
             setIsShoulderLocked,
-            isShoulderExpanded,
-            setIsShoulderExpanded,
             setShoulderLength,
             {
               position: [0, 1.5, -2],
@@ -555,8 +588,6 @@ const GenrateAvatarScreen = () => {
             chestCircumference,
             isChestLocked,
             setIsChestLocked,
-            isChestExpanded,
-            setIsChestExpanded,
             setChestCircumference,
             {
               position: [0, 1.2, 2],
@@ -570,8 +601,6 @@ const GenrateAvatarScreen = () => {
             waistCircumference,
             isWaistLocked,
             setIsWaistLocked,
-            isWaistExpanded,
-            setIsWaistExpanded,
             setWaistCircumference,
             {
               position: [0, 1.0, 2],
@@ -585,8 +614,6 @@ const GenrateAvatarScreen = () => {
             hipCircumference,
             isHipLocked,
             setIsHipLocked,
-            isHipExpanded,
-            setIsHipExpanded,
             setHipCircumference,
             {
               position: [0, 0.8, 2],
@@ -682,7 +709,7 @@ const GenrateAvatarScreen = () => {
             outputColorSpace: THREE.SRGBColorSpace,
             powerPreference: "high-performance",
             premultipliedAlpha: false,
-            antialias: false,
+            antialias: true,
           }}
           style={{ width: "100vw", height: "100vh" }}
           className="w-100 h-100"
@@ -694,25 +721,54 @@ const GenrateAvatarScreen = () => {
                 <primitive
                   object={previewModel}
                   position={modelPosition}
-                    rotation={[0, 0, 0]}
-                  // rotation={[0, -Math.PI / 4, 0]} // Rotate body -45 degrees around Y axis
+                  rotation={[0, -Math.PI / 4, 0]} // Rotate body -45 degrees around Y axis
                 />
-                {isWaistExpanded && previewModel && (
+                {expandedControl === "WAIST" && previewModel && (
                   <>
                     <TorusBetweenVertices
                       mesh={previewModel}
                       indexA={waistIndexA}
                       indexB={waistIndexB}
                     />
-                    {/* Debug: show spheres at waist vertices */}
-                    <mesh position={previewModel.geometry.attributes.position.array.slice(waistIndexA * 3, waistIndexA * 3 + 3)}>
-                      <sphereGeometry args={[0.01, 16, 16]} />
+                  </>
+                )}
+                {expandedControl === "SHOULDER" && previewModel && (
+                  <>
+                    <RodBetweenVertices
+                      mesh={previewModel}
+                      indexA={shoulderIndexA}
+                      indexB={shoulderIndexB}
+                    />
+
+
+                    <mesh position={shoulderIndexA}>
+                      <sphereGeometry args={[0.005, 16, 16]} />
                       <meshStandardMaterial color="red" />
                     </mesh>
-                    <mesh position={previewModel.geometry.attributes.position.array.slice(waistIndexB * 3, waistIndexB * 3 + 3)}>
-                      <sphereGeometry args={[0.01, 16, 16]} />
+
+                    <mesh position={shoulderIndexB}>
+                      <sphereGeometry args={[0.005, 16, 16]} />
                       <meshStandardMaterial color="blue" />
                     </mesh>
+
+                  </>
+                )}
+                {expandedControl === "CHEST" && previewModel && (
+                  <>
+                    <TorusBetweenVertices
+                      mesh={previewModel}
+                      indexA={chestIndexA}
+                      indexB={chestIndexB}
+                    />
+                  </>
+                )}
+                {expandedControl === "HIP" && previewModel && (
+                  <>
+                    <TorusBetweenVertices
+                      mesh={previewModel}
+                      indexA={hipIndexA}
+                      indexB={hipIndexB}
+                    />
                   </>
                 )}
               </>
@@ -835,8 +891,6 @@ const GenrateAvatarScreen = () => {
       </div>
     </>
   );
-
-
 };
 
-export default GenrateAvatarScreen;
+export default AvatarScreenFemale;

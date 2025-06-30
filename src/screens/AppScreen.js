@@ -359,7 +359,7 @@ const AppScreen = () => {
                     outputColorSpace: THREE.SRGBColorSpace,
                     powerPreference: "high-performance",
                     premultipliedAlpha: false,
-                    antialias: false,
+                    antialias: true,
                   }}
                 >
                   <Leva hidden />
