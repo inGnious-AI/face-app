@@ -9,12 +9,14 @@ import { Canvas, useLoader } from "react-three-fiber";
 import * as THREE from "three";
 import { GLTFLoader, OBJLoader } from "three/examples/jsm/Addons.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
-import { CLOTH_API_URL, BODY_API_URL, FALSE_BACKGROUND } from '../common/constants.js';
+import { CLOTH_API_URL, BODY_API_URL, FALSE_BACKGROUND, FACE_API_URL } from '../common/constants.js';
 import { fetchLastLineFromCSV } from "../common/csvData.js";
 import TorusBetweenVertices from "../common/torusCreation.js";
 import { customisedLoader } from "../common/customisedLoader.js";
 import './AvatarScreen.css';
 import RodBetweenVertices from "../common/rodCreation.js";
+import FaceUploadOverlay from "../common/faceUploadOverlay.js";
+import { uploadFileToS3 } from "../common/aws.js";
 
 const AvatarScreenMale = () => {
   const { avatar } = useSelector((state) => state.avatarModelDetails);
@@ -281,12 +283,79 @@ const AvatarScreenMale = () => {
     }
   };
 
+  const generateFace = async () => {
+    try {
+      setLoading(true);
+      const id = customer_id === "123"
+        ? Number(generateUniqueId({ length: 16, useLetters: false }))
+        : customer_id;
+
+      await fetch(`${FACE_API_URL}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          height_id: parseInt(height * 2.54),
+          weight_id: parseInt(weight),
+          customer_id: parseInt(id),
+          body_dim: {
+            "SHOULDER": parseInt(shoulderLength),
+            "CHEST": parseInt(chestCircumference),
+            "WAIST": parseInt(waistCircumference),
+            "HIPS": parseInt(hipCircumference)
+          },
+          repose_flag: 1,
+        }),
+      });
+
+      setCustomerId(id);
+      setLoading(false);
+      loadModel();
+      return;
+    } catch (error) {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (cameraRef.current) {
       cameraRef.current.position.set(...cameraPosition);
       cameraRef.current.lookAt(...cameraLookAt);
     }
   }, [cameraPosition, cameraLookAt]);
+
+  const [showUploadOptions, setShowUploadOptions] = useState(false);
+  const [uploadSource, setUploadSource] = useState(null); // 'camera' or 'gallery'
+
+  const handleSourceSelect = (source) => {
+    setUploadSource(source); // Set to 'camera' or 'gallery'
+  };
+
+  const handleFileInput = (part) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+
+    if (uploadSource === "camera") input.capture = "environment";
+
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+
+        console.log(`Selected: ${part} from ${uploadSource}`, file);
+        <input type="file" onChange={(e) => {
+          const file = e.target.files[0];
+          if (file) {
+            uploadFileToS3(file, customer_id, part);
+          }
+        }} />
+
+      }
+    };
+
+    input.click();
+    setShowUploadOptions(false);
+    setUploadSource(null);
+  };
 
   const shoulderIndexA = 11641;
   const shoulderIndexB = 7052;
@@ -450,121 +519,205 @@ const AvatarScreenMale = () => {
         </button>
       </div>
 
-      {/* 3D Canvas */}
-      <Canvas
-        shadows={{ type: THREE.PCFSoftShadowMap }}
-        camera={{ fov: 32, position: cameraPosition }}
-        onCreated={({ camera }) => {
-          cameraRef.current = camera;
-        }}
-        gl={{
-          toneMapping: THREE.ACESFilmicToneMapping,
-          outputColorSpace: THREE.SRGBColorSpace,
-          powerPreference: "high-performance",
-          premultipliedAlpha: false,
-          antialias: true,
-        }}
-        style={{ width: "100vw", height: "100vh", background: "#e9ecef" }}
-        className="w-100 h-100"
-      >
-        <>
-          {/* Soft Ambient Light */}
-          <ambientLight intensity={0.8} />
 
-          {/* Main Directional Light from front-top-right */}
-          <directionalLight
-            position={[2, 5, 4]}
-            intensity={1.2}
-            castShadow
-            shadow-mapSize-width={2048}
-            shadow-mapSize-height={2048}
-            color="#fff"
-          />
+      <div style={{ position: "relative", width: "100vw", height: "100vh" }}>
+        {/* Camera/Gallery Trigger */}
+        {/* Camera/Gallery Trigger */}
+        <div
+          style={{
+            position: "absolute",
+            top: "16px",
+            right: "16px",
+            zIndex: 100,
+            backgroundColor: "#fff",
+            padding: "8px",
+            borderRadius: "8px",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+            cursor: "pointer",
+            fontSize: "18px",
+          }}
+          onClick={() => {
+            setShowUploadOptions(!showUploadOptions);
+            setUploadSource(null); // Reset on new click
+          }}
+        >
+          📷
+        </div>
 
-          {/* Fill Light from left for softer shadows */}
-          <directionalLight
-            position={[-3, 2, 2]}
-            intensity={0.4}
-            color="#ffffff"
-          />
+        {/* Upload Options */}
+        {showUploadOptions && (
+          <div
+            style={{
+              position: "absolute",
+              top: "60px",
+              right: "16px",
+              zIndex: 100,
+              backgroundColor: "#fff",
+              border: "1px solid #ccc",
+              borderRadius: "8px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+              padding: "10px",
+              minWidth: "160px",
+            }}
+          >
+            {!uploadSource ? (
+              <>
+                <div
+                  style={{ padding: "8px", cursor: "pointer" }}
+                  onClick={() => handleSourceSelect("camera")}
+                >
+                  📸 Camera
+                </div>
+                <div
+                  style={{ padding: "8px", cursor: "pointer" }}
+                  onClick={() => handleSourceSelect("gallery")}
+                >
+                  🖼️ Gallery
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  style={{ padding: "8px", cursor: "pointer" }}
+                  onClick={() => handleFileInput("FrontFace")}
+                >
+                  Front Face
+                </div>
+                <div
+                  style={{ padding: "8px", cursor: "pointer" }}
+                  onClick={() => handleFileInput("LeftFace")}
+                >
+                  Left Face
+                </div>
+                <div
+                  style={{ padding: "8px", cursor: "pointer" }}
+                  onClick={() => handleFileInput("RightFace")}
+                >
+                  Right Face
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
-          {/* Optional: Rim Light from behind for outline glow */}
-          <directionalLight
-            position={[0, 4, -6]}
-            intensity={0.3}
-            color="#d5e8ff"
-          />
-        </>
-        <Lights lightColor={"#ffffff"} lightPreference={"neutral"} />
-        <Suspense fallback={null}>
-          {previewModel && (
-            <>
-              <primitive object={previewModel} position={modelPosition} rotation={[-0.2, -Math.PI / 5, 0]} />
-              {expandedControl === "WAIST" && previewModel && (
-                <TorusBetweenVertices mesh={previewModel} indexA={waistIndexA} indexB={waistIndexB} />
-              )}
-              {expandedControl === "SHOULDER" && previewModel && (
-                <>
-                  <RodBetweenVertices mesh={previewModel} indexA={shoulderIndexA} indexB={shoulderIndexB} />
-                  <mesh position={shoulderIndexA}>
-                    <sphereGeometry args={[0.005, 16, 16]} />
-                    <meshStandardMaterial color="red" />
-                  </mesh>
-                  <mesh position={shoulderIndexB}>
-                    <sphereGeometry args={[0.005, 16, 16]} />
-                    <meshStandardMaterial color="blue" />
-                  </mesh>
-                </>
-              )}
-              {expandedControl === "CHEST" && previewModel && (
-                <TorusBetweenVertices mesh={previewModel} indexA={chestIndexA} indexB={chestIndexB} />
-              )}
-              {expandedControl === "HIP" && previewModel && (
-                <TorusBetweenVertices mesh={previewModel} indexA={hipIndexA} indexB={hipIndexB} />
-              )}
-            </>
-          )}
-        </Suspense>
-      </Canvas>
 
-      {/* Height Slider - right center */}
-      <div className="height-slider-container">
-        <div className="height-label">HEIGHT</div>
-        <div className="height-slider-inner">
+        {/* 3D Canvas */}
+        <Canvas
+          shadows={{ type: THREE.PCFSoftShadowMap }}
+          camera={{ fov: 32, position: cameraPosition }}
+          onCreated={({ camera }) => {
+            cameraRef.current = camera;
+          }}
+          gl={{
+            toneMapping: THREE.ACESFilmicToneMapping,
+            outputColorSpace: THREE.SRGBColorSpace,
+            powerPreference: "high-performance",
+            premultipliedAlpha: false,
+            antialias: true,
+          }}
+          style={{ width: "100vw", height: "100vh", background: "#e9ecef" }}
+          className="w-100 h-100"
+        >
+          <>
+            {/* Soft Ambient Light */}
+            <ambientLight intensity={0.8} />
+
+            {/* Main Directional Light from front-top-right */}
+            <directionalLight
+              position={[2, 5, 4]}
+              intensity={1.2}
+              castShadow
+              shadow-mapSize-width={2048}
+              shadow-mapSize-height={2048}
+              color="#fff"
+            />
+
+            {/* Fill Light from left for softer shadows */}
+            <directionalLight
+              position={[-3, 2, 2]}
+              intensity={0.4}
+              color="#ffffff"
+            />
+
+            {/* Optional: Rim Light from behind for outline glow */}
+            <directionalLight
+              position={[0, 4, -6]}
+              intensity={0.3}
+              color="#d5e8ff"
+            />
+          </>
+          <Lights lightColor={"#ffffff"} lightPreference={"neutral"} />
+          <Suspense fallback={null}>
+            {previewModel && (
+              <>
+                <primitive object={previewModel} position={modelPosition} rotation={[-0.2, -Math.PI / 5, 0]} />
+                {expandedControl === "WAIST" && previewModel && (
+                  <TorusBetweenVertices mesh={previewModel} indexA={waistIndexA} indexB={waistIndexB} />
+                )}
+                {expandedControl === "SHOULDER" && previewModel && (
+                  <>
+                    <RodBetweenVertices mesh={previewModel} indexA={shoulderIndexA} indexB={shoulderIndexB} />
+                    <mesh position={shoulderIndexA}>
+                      <sphereGeometry args={[0.005, 16, 16]} />
+                      <meshStandardMaterial color="red" />
+                    </mesh>
+                    <mesh position={shoulderIndexB}>
+                      <sphereGeometry args={[0.005, 16, 16]} />
+                      <meshStandardMaterial color="blue" />
+                    </mesh>
+                  </>
+                )}
+                {expandedControl === "CHEST" && previewModel && (
+                  <TorusBetweenVertices mesh={previewModel} indexA={chestIndexA} indexB={chestIndexB} />
+                )}
+                {expandedControl === "HIP" && previewModel && (
+                  <TorusBetweenVertices mesh={previewModel} indexA={hipIndexA} indexB={hipIndexB} />
+                )}
+              </>
+            )}
+          </Suspense>
+        </Canvas>
+
+
+        {/* Height Slider - right center */}
+        <div className="height-slider-container">
+          <div className="height-label">HEIGHT</div>
+          <div className="height-slider-inner">
+            <input
+              type="range"
+              min={minHeight}
+              max={maxHeight}
+              step={stepHeight}
+              value={height}
+              onChange={(e) => setHeight(Number(e.target.value))}
+              className="height-range"
+            />
+            <div className="height-value-box">{formatHeight(height)}</div>
+          </div>
+        </div>
+
+        {/* Weight Slider - bottom left */}
+        <div className="weight-slider-container">
+          <span className="weight-label">WEIGHT</span>
           <input
             type="range"
-            min={minHeight}
-            max={maxHeight}
-            step={stepHeight}
-            value={height}
-            onChange={(e) => setHeight(Number(e.target.value))}
-            className="height-range"
+            min={min}
+            max={max}
+            step={step}
+            value={weight}
+            onChange={(e) => setWeight(Number(e.target.value))}
+            className="weight-range"
           />
-          <div className="height-value-box">{formatHeight(height)}</div>
+          <span className="weight-value-box">{weight} kg</span>
+        </div>
+
+        {/* Actions - bottom right */}
+        <div className="avatar-actions">
+          <button onClick={generatePreview}>PREVIEW</button>
+          <button onClick={generateFace}>PROCEED</button>
         </div>
       </div>
-
-      {/* Weight Slider - bottom left */}
-      <div className="weight-slider-container">
-        <span className="weight-label">WEIGHT</span>
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={weight}
-          onChange={(e) => setWeight(Number(e.target.value))}
-          className="weight-range"
-        />
-        <span className="weight-value-box">{weight} kg</span>
-      </div>
-
-      {/* Actions - bottom right */}
-      <div className="avatar-actions">
-        <button onClick={generatePreview}>PREVIEW</button>
-        <button onClick={() => alert("Proceed clicked")}>PROCEED</button>
-      </div>
-    </div>
+    </div >
   );
 };
 
