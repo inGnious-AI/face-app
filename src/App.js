@@ -12,7 +12,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/male" Component={AvatarScreenMale} index />
+        <Route path="/" Component={AvatarScreenMale} index />
         <Route path="/female" Component={AvatarScreenFemale} index />
         <Route path="/generate" Component={AppScreen}  />
       </Routes>
