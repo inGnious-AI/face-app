@@ -22,7 +22,7 @@ export const fetchLastLineFromCSV = async (data) => {
 
         return rowData;
     } catch (error) {
-        console.error('Error fetching or parsing CSV:', error);
+        console.error('Error fetching or parsing measurement CSV (height, weight, shoulder, etc.):', error);
         return null;
     }
 };

@@ -17,6 +17,10 @@ import './AvatarScreen.css';
 import RodBetweenVertices from "../common/rodCreation.js";
 import FaceUploadOverlay from "../common/faceUploadOverlay.js";
 import { uploadFileToS3 } from "../common/aws.js";
+import { RepeatWrapping } from "three";
+import HairStrands from "../common/hairstrands.js";
+import { OrbitControls } from '@react-three/drei';
+
 
 const AvatarScreenMale = () => {
   const { avatar } = useSelector((state) => state.avatarModelDetails);
@@ -25,8 +29,22 @@ const AvatarScreenMale = () => {
   const [customer_id, setCustomerId] = useState();
   const [cameraPosition, setCameraPosition] = useState([0, 1.5, 3]);
   const [cameraLookAt, setCameraLookAt] = useState([0, 1.5, 0]);
-  const [modelPosition, setModelPosition] = useState([0.1, -1, -0.3]);
+  const [modelPosition, setModelPosition] = useState([0.2, -1, -0.3]);
   const [expandedControl, setExpandedControl] = useState(null);
+  const [hairCSV, setHairCSV] = useState("");
+  useEffect(() => {
+    console.log("fetcg csv")
+    fetch('/nearest_deltas_2.csv')
+      .then(res => res.text())
+      .then(setHairCSV);
+  }, []);
+
+  // const [hairStrands, setHairStrands] = useState(null);
+  // useEffect(() => {
+  //   fetch('/Hair_Strands_V1.json')
+  //     .then(r => r.json())
+  //     .then(setHairStrands);
+  // }, []);
 
   const cameraRef = useRef();
   const [loading, setLoading] = useState(false);
@@ -36,34 +54,134 @@ const AvatarScreenMale = () => {
   dracoLoader.setDecoderPath("https://protal-web-assest.s3.ap-south-1.amazonaws.com/Dump/draco/");
   dracoLoader.setDecoderConfig({ type: "js" });
 
+
   const bgModel = useLoader(GLTFLoader, FALSE_BACKGROUND);
   const [previewModel, setPreviewModel] = useState(null);
+  const [objVertices, setObjVertices] = useState([]);
 
   const loadModel = async () => {
     const bodyType = "male";
-    if (customer_id) {
-      setLoading(true);
-      const objUrl = `https://continuous-tshirt.s3.ap-south-1.amazonaws.com/faceless_app/test/${customer_id}/body_uploads/${bodyType}/preview.obj?${Date.now()}`;
-      try {
-        const response = await fetch(objUrl);
-        const objText = await response.text();
-        const { vertices, faces } = customisedLoader(objText);
-        const geometry = new THREE.BufferGeometry();
-        const verticesFlat = vertices.flat();
-        geometry.setAttribute("position", new THREE.Float32BufferAttribute(verticesFlat, 3));
-        const indices = faces.flat().map(i => i - 1);
-        geometry.setIndex(indices);
-        geometry.computeVertexNormals();
-        const material = new THREE.MeshStandardMaterial({
-          color: "#fff", // pure white
-          roughness: 0.37, // a bit glossy
-          metalness: 0.0   // matte look
-        });
-        const mesh = new THREE.Mesh(geometry, material);
-        setPreviewModel(mesh);
-      } catch (err) {
-        console.error("Failed to load or parse OBJ:", err);
+    if (!customer_id) return;
+    setLoading(true);
+
+    const objUrl = `https://continuous-tshirt.s3.ap-south-1.amazonaws.com/face_app/204/body_uploads/${bodyType}/reposed_body.obj?${Date.now()}`;
+    const bodyTextureUrl = `https://continuous-tshirt.s3.ap-south-1.amazonaws.com/face_app/211/body_uploads/male/model_body.jpeg`;
+    const faceTextureUrl = `https://continuous-tshirt.s3.ap-south-1.amazonaws.com/face_app/211/body_uploads/male/model_face.jpeg`;
+
+    try {
+      // Fetch and parse OBJ
+      const response = await fetch(objUrl);
+      const objText = await response.text();
+      const { positions, uvs, normals, groups } = customisedLoader(objText);
+
+      // After running customisedLoader
+      const tempVertices = [];
+      const tempFaces = [];
+      const lines = objText.split('\n');
+      for (let line of lines) {
+        line = line.trim();
+        if (line.startsWith('v ')) {
+          const parts = line.split(/\s+/);
+          tempVertices.push([+parts[1], +parts[2], +parts[3]]);
+        }
+        if (line.startsWith('f ')) {
+          const parts = line.split(/\s+/).slice(1); // skip the 'f'
+          // Map each face vertex entry
+          const faceIndices = parts.map(p => {
+            // Handles formats: 1, 1/2, 1//3, 1/2/3
+            const vi = parseInt(p.split('/')[0], 10);
+            return vi;
+          });
+          // Triangulate if needed (OBJ faces can be quads/ngons)
+          for (let i = 1; i < faceIndices.length - 1; i++) {
+            tempFaces.push([faceIndices[0], faceIndices[i], faceIndices[i + 1]]);
+          }
+        }
       }
+
+      // Identify the head group
+      const headGroup = groups.find(g => /head/i.test(g.material));
+      if (!headGroup) {
+        console.warn("Head group not found");
+      } else {
+        const headVertices = new Set();
+
+        // Go through head group's vertices in 'positions'
+        for (let i = headGroup.start; i < headGroup.start + headGroup.count; i++) {
+          const baseIndex = i * 3;
+          const vx = positions[baseIndex];
+          const vy = positions[baseIndex + 1];
+          const vz = positions[baseIndex + 2];
+
+          // Match to tempVertices index (approximate match)
+          const matchIdx = tempVertices.findIndex(([x, y, z]) =>
+            Math.abs(x - vx) < 1e-6 &&
+            Math.abs(y - vy) < 1e-6 &&
+            Math.abs(z - vz) < 1e-6
+          );
+
+          if (matchIdx !== -1) {
+            headVertices.add(matchIdx);
+          }
+        }
+
+        // Log the matched vertices
+        console.log(`Head vertex indices:`, Array.from(headVertices));
+        console.log(`Head vertex positions:`, Array.from(headVertices).map(i => tempVertices[i]));
+      }
+
+      setObjVertices(tempVertices);
+      console.log(`customised loader vertices: `, tempVertices);
+      console.log(`customised loader faces: `, tempFaces);
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+      geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+      geometry.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
+      geometry.clearGroups();
+      groups.forEach(g => {
+        let materialIndex = /head/i.test(g.material) ? 1 : 0;
+        geometry.addGroup(g.start, g.count, materialIndex);
+      });
+
+      // Load textures in parallel
+      const loader = new THREE.TextureLoader();
+      loader.crossOrigin = "";
+
+      const loadTexture = (url) =>
+        new Promise((resolve, reject) => {
+          loader.load(
+            url,
+            (tex) => resolve(tex),
+            undefined,
+            (err) => reject(err)
+          );
+        });
+
+      const [bodyTexture, faceTexture] = await Promise.all([
+        loadTexture(bodyTextureUrl),
+        loadTexture(faceTextureUrl),
+      ]);
+      [bodyTexture, faceTexture].forEach(tex => {
+        tex.flipY = false;
+        // tex.wrapS = THREE.ClampToEdgeWrapping;
+        tex.wrapS = RepeatWrapping;
+        tex.wrapT = RepeatWrapping;
+        // tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.colorSpace = THREE.SRGBColorSpace;
+      });
+
+      const materials = [
+        new THREE.MeshStandardMaterial({ map: bodyTexture, metalness: 0, roughness: 0.4 }), // Solid green
+        new THREE.MeshStandardMaterial({ map: faceTexture, metalness: 0, roughness: 0.4 }), //red
+      ];
+
+      const mesh = new THREE.Mesh(geometry, materials);
+      mesh.material.forEach(mat => mat.needsUpdate = true);
+      setPreviewModel(mesh);
+      setLoading(false);
+    } catch (err) {
+      console.error("Failed to load or parse OBJ or textures:", err);
       setLoading(false);
     }
   };
@@ -257,6 +375,12 @@ const AvatarScreenMale = () => {
         ? Number(generateUniqueId({ length: 16, useLetters: false }))
         : customer_id;
 
+      const body_dim = {};
+      if (isShoulderLocked) body_dim["SHOULDER"] = parseInt(shoulderLength);
+      if (isChestLocked) body_dim["CHEST"] = parseInt(chestCircumference);
+      if (isWaistLocked) body_dim["WAIST"] = parseInt(waistCircumference);
+      if (isHipLocked) body_dim["HIPS"] = parseInt(hipCircumference);
+
       await fetch(`${finalBodyUrl}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -264,12 +388,7 @@ const AvatarScreenMale = () => {
           height_id: parseInt(height * 2.54),
           weight_id: parseInt(weight),
           customer_id: parseInt(id),
-          body_dim: {
-            "SHOULDER": parseInt(shoulderLength),
-            "CHEST": parseInt(chestCircumference),
-            "WAIST": parseInt(waistCircumference),
-            "HIPS": parseInt(hipCircumference)
-          },
+          body_dim: body_dim,
           repose_flag: 1,
         }),
       });
@@ -647,10 +766,12 @@ const AvatarScreenMale = () => {
             />
           </>
           <Lights lightColor={"#ffffff"} lightPreference={"neutral"} />
+          <OrbitControls />
           <Suspense fallback={null}>
             {previewModel && (
               <>
-                <primitive object={previewModel} position={modelPosition} rotation={[-0.2, -Math.PI / 5, 0]} />
+                {/* <primitive object={previewModel} position={modelPosition} rotation={[-0.2, -Math.PI / 5, 0]} /> */}
+                <primitive object={previewModel} position={modelPosition} rotation={[-0.2, 0, 0]} />
                 {expandedControl === "WAIST" && previewModel && (
                   <TorusBetweenVertices mesh={previewModel} indexA={waistIndexA} indexB={waistIndexB} />
                 )}
@@ -672,6 +793,14 @@ const AvatarScreenMale = () => {
                 )}
                 {expandedControl === "HIP" && previewModel && (
                   <TorusBetweenVertices mesh={previewModel} indexA={hipIndexA} indexB={hipIndexB} />
+                )}
+                {hairCSV && previewModel && objVertices.length > 0 && (
+                  <HairStrands
+                    csv={hairCSV}
+                    objVertices={objVertices}
+                    modelPosition={modelPosition}
+                    modelRotation={[-0.2, 0, 0]}
+                  />
                 )}
               </>
             )}
